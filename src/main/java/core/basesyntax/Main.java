@@ -1,44 +1,58 @@
 package core.basesyntax;
 
-import core.basesyntax.service.FruitService;
-import core.basesyntax.service.ParserService;
-import core.basesyntax.service.ReaderService;
-import core.basesyntax.service.WriterService;
-import core.basesyntax.service.impl.FruitServiceImpl;
-import core.basesyntax.service.impl.ParserServiceImpl;
-import core.basesyntax.service.impl.ReaderServiceImpl;
-import core.basesyntax.service.impl.WriterServiceImpl;
-import core.basesyntax.strategy.AddOperationHandler;
-import core.basesyntax.strategy.BalanceOperationHandler;
-import core.basesyntax.strategy.OperationHandler;
-import core.basesyntax.strategy.PurchaseOperationHandler;
+import core.basesyntax.db.Storage;
+import core.basesyntax.model.FruitTransaction;
+import core.basesyntax.service.ParseFruits;
+import core.basesyntax.service.ReadService;
+import core.basesyntax.service.ReportService;
+import core.basesyntax.service.WriteService;
+import core.basesyntax.service.impl.ParseFruitsImpl;
+import core.basesyntax.service.impl.ReadServiceImpl;
+import core.basesyntax.service.impl.ReportServiceImpl;
+import core.basesyntax.service.impl.WriteServiceImpl;
+import core.basesyntax.strategy.*;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class Main {
-    public static final String SOURCE_ADDRESS = "src/main/resources/input.csv";
-    public static final String DESTINATION_ADDRESS = "src/main/resources/report.csv";
-    public static final ReaderService READER_FILE = new ReaderServiceImpl();
-    public static final ParserService PARSER_FILE = new ParserServiceImpl();
-    public static final WriterService WRITER_FILE = new WriterServiceImpl();
+    private static final String INPUT_FILE_PATH = "src/main/java/resources/fruits_info.csv";
+    private static final String OUTPUT_FILE_PATH = "src/main/java/resources/report.csv";
 
     public static void main(String[] args) {
-        Map<Operation, OperationHandler> operationStrategyMap = new HashMap<>();
-        operationStrategyMap.put(Operation.PURCHASE, new PurchaseOperationHandler());
-        operationStrategyMap.put(Operation.SUPPLY, new AddOperationHandler());
-        operationStrategyMap.put(Operation.BALANCE, new BalanceOperationHandler());
-        operationStrategyMap.put(Operation.RETURN, new AddOperationHandler());
-        List<String> contentFromFile = READER_FILE.readFromFile(SOURCE_ADDRESS);
-        contentFromFile.remove(0);
-        contentFromFile.stream()
-                .map(PARSER_FILE::parseLine)
-                .forEach(transaction -> operationStrategyMap
-                        .get(Operation.checkTypeOperation(transaction.getOperation()))
-                        .handle(transaction));
-        FruitService reportService = new FruitServiceImpl();
-        String report = reportService.getReport();
-        WRITER_FILE.writeToFile(DESTINATION_ADDRESS, report);
+        Map<FruitTransaction.Operation, OperationHandler> map = new HashMap<>();
+        initialization(map);
+        OperationStrategy operationStrategy = new OperationStrategyImpl(map);
+
+        ReadService readService = new ReadServiceImpl();
+        List<String> readFromFile = readService.readFromFile(INPUT_FILE_PATH);
+
+        ParseFruits parseFruits = new ParseFruitsImpl();
+        List<FruitTransaction> parse = parseFruits.parse(readFromFile);
+
+        for (FruitTransaction fruitTransaction : parse) {
+            OperationHandler strategy = operationStrategy
+                    .getOperationHandler(fruitTransaction.getOperation());
+            strategy.handle(fruitTransaction);
+        }
+
+        ReportService reportService = new ReportServiceImpl();
+        String report = reportService.getReport(Storage.storageFruits);
+
+        WriteService writeService = new WriteServiceImpl();
+        writeService.writeToFile(report, OUTPUT_FILE_PATH);
+    }
+
+    public static void initialization(Map<FruitTransaction.Operation,
+            OperationHandler> operationHandlerMap) {
+        operationHandlerMap.put(FruitTransaction.Operation.BALANCE,
+                new BalanceOperationHandler());
+        operationHandlerMap.put(FruitTransaction.Operation.SUPPLY,
+                new SupplyOperationHandler());
+        operationHandlerMap.put(FruitTransaction.Operation.PURCHASE,
+                new PurchaseOperationHandler());
+        operationHandlerMap.put(FruitTransaction.Operation.RETURN,
+                new ReturnOperationHandler());
     }
 }

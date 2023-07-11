@@ -1,60 +1,66 @@
 package core.strategy;
 
-import core.basesyntax.model.FruitTransaction;
-import core.basesyntax.strategy.*;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.HashMap;
-import java.util.Map;
-
-import static core.basesyntax.model.FruitTransaction.Operation.*;
 import static org.junit.Assert.assertEquals;
 
+import core.db.Storage;
+import core.model.FruitTransaction;
+import java.util.Map;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
 public class OperationStrategyImplTest {
-    private OperationStrategy operationStrategy;
-    private Map<FruitTransaction.Operation, OperationHandler> map;
+    private static OperationStrategy operationStrategy;
+
+    @BeforeClass
+    public static void init() {
+        Map<FruitTransaction.Operation, OperationHandler> operationStrategyMap = Map.of(
+                FruitTransaction.Operation.BALANCE, new BalanceOperationHandler(),
+                FruitTransaction.Operation.PURCHASE, new PurchaseOperationHandler(),
+                FruitTransaction.Operation.RETURN, new ReturnOperationHandler(),
+                FruitTransaction.Operation.SUPPLY, new SupplyOperationHandler());
+        operationStrategy = new OperationStrategyImpl(operationStrategyMap);
+    }
 
     @Before
-    public void setUp() {
-        map = new HashMap<>();
-        map.put(BALANCE, new BalanceOperationHandler());
-        map.put(SUPPLY, new SupplyOperationHandler());
-        map.put(PURCHASE, new PurchaseOperationHandler());
-        map.put(RETURN, new ReturnOperationHandler());
-        operationStrategy = new OperationStrategyImpl(map);
+    public void fillStorage() {
+        Storage.fruits.put("apple", 10);
     }
 
     @Test
-    public void operationStrategy_ValidBalanceHandler_Ok() {
-        Class<? extends OperationHandler> actual =
-                operationStrategy.getOperationHandler(BALANCE).getClass();
-        assertEquals(BalanceOperationHandler.class, actual);
+    public void getOperationHandler_Purchase_Ok() {
+        Class<? extends OperationHandler> actual = operationStrategy
+                .getOperationHandler(FruitTransaction.Operation.PURCHASE).getClass();
+        Class<PurchaseOperationHandler> expected = PurchaseOperationHandler.class;
+        assertEquals(expected, actual);
     }
 
     @Test
-    public void operationStrategy_ValidSupplyHandler_Ok() {
-        Class<? extends OperationHandler> actual =
-                operationStrategy.getOperationHandler(SUPPLY).getClass();
-        assertEquals(SupplyOperationHandler.class, actual);
+    public void getReturneOperation_Ok() {
+        Class<? extends OperationHandler> actual = operationStrategy
+                .getOperationHandler(FruitTransaction.Operation.RETURN).getClass();
+        Class<ReturnOperationHandler> expected = ReturnOperationHandler.class;
+        assertEquals(expected, actual);
     }
 
     @Test
-    public void operationStrategy_ValidPurchaseHandler_Ok() {
-        Class<? extends OperationHandler> actual =
-                operationStrategy.getOperationHandler(PURCHASE).getClass();
-        assertEquals(PurchaseOperationHandler.class, actual);
+    public void getBalanceOperation_Ok() {
+        Class<? extends OperationHandler> actual = operationStrategy
+                .getOperationHandler(FruitTransaction.Operation.BALANCE).getClass();
+        Class<BalanceOperationHandler> expected = BalanceOperationHandler.class;
+        assertEquals(expected, actual);
     }
 
     @Test
-    public void operationStrategy_ValidReturnHandler_Ok() {
-        Class<? extends OperationHandler> actual =
-                operationStrategy.getOperationHandler(RETURN).getClass();
-        assertEquals(ReturnOperationHandler.class, actual);
+    public void getSupplyOperation_Ok() {
+        Class<? extends OperationHandler> actual = operationStrategy
+                .getOperationHandler(FruitTransaction.Operation.SUPPLY).getClass();
+        Class<SupplyOperationHandler> expected = SupplyOperationHandler.class;
+        assertEquals(expected, actual);
     }
 
-    @Test (expected = RuntimeException.class)
-    public void operationStrategy_NullOperation_NotOk() {
-        operationStrategy.getOperationHandler(null).getClass();
+    @Test(expected = NullPointerException.class)
+    public void getOperationHandler_Null_notOk() {
+        operationStrategy.getOperationHandler(null);
     }
 }

@@ -1,27 +1,39 @@
 package core.strategy;
 
-import core.basesyntax.db.Storage;
-import core.basesyntax.model.FruitTransaction;
-import core.basesyntax.strategy.BalanceOperationHandler;
-import org.junit.Before;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import core.db.Storage;
+import core.model.FruitTransaction;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-
 public class BalanceOperationHandlerTest {
-    private BalanceOperationHandler balanceOperationHandler;
+    private static final String APPLE = "apple";
+    private static final int APPLE_QUANTITY = 10;
+    private static final String BANANA = "banana";
+    private static final int BANANA_QUANTITY = 20;
+    private static final int EXPECTED_STORAGE_SIZE = 2;
+    private static FruitTransaction fruitTransaction;
+    private static OperationHandler balanceOparationHandler;
 
-    @Before
-    public void setUp() {
-        balanceOperationHandler = new BalanceOperationHandler();
+    @BeforeClass
+    public static void init() {
+        fruitTransaction = new FruitTransaction();
+        balanceOparationHandler = new BalanceOperationHandler();
+        Storage.fruits.put(APPLE, APPLE_QUANTITY);
+        fruitTransaction.setFruit(BANANA);
+        fruitTransaction.setQuantity(BANANA_QUANTITY);
     }
 
     @Test
-    public void balanceOperation_BalanceValidTransaction_Ok() {
-        FruitTransaction fruitTransaction = new FruitTransaction("banana", 20);
-        balanceOperationHandler.handle(fruitTransaction);
-        int expected = 20;
-        int actual = Storage.storageFruits.get("banana");
-        assertEquals(expected, actual);
+    public void handle_Ok() {
+        balanceOparationHandler.handle(fruitTransaction);
+        int actualStorageSize = Storage.fruits.size();
+        assertEquals(actualStorageSize, EXPECTED_STORAGE_SIZE);
+        assertTrue(Storage.fruits.containsKey(BANANA));
+        assertTrue(Storage.fruits.containsKey(APPLE));
+        assertEquals((int) Storage.fruits.get(APPLE), APPLE_QUANTITY);
+        assertEquals((int) Storage.fruits.get(BANANA), BANANA_QUANTITY);
     }
 }
